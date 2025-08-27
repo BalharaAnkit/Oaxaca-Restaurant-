@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Waiter</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+
+        #sidebar {
+            background-color: #dabfff;
+        }
+
+        .list-group-item {
+            color: #4b2e83;
+        }
+
+        .list-group-item.active {
+            background-color: #7c4dff;
+            border-color: #7c4dff;
+        }
+
+
+
+
+        .table, .table th, .table td {
+            border: 3px solid black; /* Adds a black border */
+        }
+
+        .table {
+            border-collapse: collapse; /* Ensures borders are nicely joined together */
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 bg-light border-right">
+            <h3 class="text-center my-3"> Welcome {{ user }} Waiter's Area</h3>
+            <div class="list-group">
+                <a href="#orders" class="list-group-item list-group-item-action" data-toggle="tab">Orders</a>
+                <a href="#Tables" class="list-group-item list-group-item-action" data-toggle="tab">Tables</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="tab-content">
+                <!-- Orders Table -->
+                <div class="tab-pane fade" id="orders">
+                    <h4 class="my-3">Orders to be delivered</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Item</th>
+                            <th>Status</th>
+                            <th>Table ID</th>
+                            <th>Done</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'R'  %}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+                            <td>{{ item.table_id }}</td>
+                            <td>
+                                <form method="post" action="{% url 'update_order' item.order_number userid 'D' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" onclick="return confirmAction('{{ item.order_number }}', '{{ userid }}', 'D')">Delivered</button>
+                                </form>
+
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <h4 class="my-3">Uncompleted Orders</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Ready?</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'P' %}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>{{ item.order_time }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <h4 class="my-3">Delivered</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Ready?</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'D' %}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>{{ item.order_time }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <h4 class="my-3">Cancelled</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Ready?</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'C' %}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>{{ item.order_time }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('.list-group-item').on('click', function() {
+            var $tabPane = $($(this).attr('href'));
+            $('.tab-pane').removeClass('show active');
+            $tabPane.addClass('show active');
+        });
+        var hash = window.location.hash;
+        if(hash) {
+            $('.tab-pane').removeClass('show active');
+            $(hash).addClass('show active');
+            $('.list-group-item[href="' + hash + '"]').addClass('active');
+        } else {
+
+            $('#orders').addClass('show active');
+            $('a[href="#orders"]').addClass('active');
+        }
+    });
+</script>
+<script>
+    function confirmAction(orderNumber, userId, action) {
+        var confirmationMessage;
+        if (action === 'D') {
+            confirmationMessage = 'Are you sure you want to mark order as delivered?';
+        }
+
+        return confirm(confirmationMessage);
+    }
+</script>
+</body>
+</html>

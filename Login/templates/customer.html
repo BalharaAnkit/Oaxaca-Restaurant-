@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="{% static 'images/logo_round_black.png' %}" type="image/x-icon">
+  <title>Menu | Oaxaca</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <link rel="stylesheet" href="{% static 'css/reset.css' %}">
+  <link rel="stylesheet" href="{% static 'css/globalStyles.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+  <!-- aos library css  -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+  <!-- Add your custom css -->
+  <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+
+<style>
+#tableNo, #placeOrder {
+    display: inline-block;
+    margin-top: 20px;
+    margin-bottom: 5px;
+    padding: 12px 20px; 
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    border-radius: 8px; 
+    font-size: 16px; 
+}
+
+#tableNo:focus, #placeOrder:focus {
+    outline: none; 
+    border-color: #007bff; 
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); 
+}
+
+</style>
+
+</head>
+
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous">
+  </script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const viewOrderButton = document.querySelector('.basket-icon-container .button');
+      const basketOverlay = document.getElementById('basketOverlay');
+      const closeBasketOverlayButton = document.getElementById('closeBasketOverlay');
+      const addToBasketButtons = document.querySelectorAll('.CartBtn');
+      const basketItemsList = document.getElementById('basketItemsList');
+      const placeOrderButton = document.getElementById('placeOrder');
+      const basketItemCount = document.querySelector('.basket-item-count');
+      const basketTotalElement = document.querySelector('.basket-total') || document.createElement('p');
+      let basketTotal = 0; // This will keep track of the total price accurately
+      const orderList = [];
+  
+      basketTotalElement.textContent = 'Total: £0';
+      basketTotalElement.classList.add('basket-total');
+      const basketOverlayContent = document.querySelector('.basket-content'); 
+      basketOverlayContent.appendChild(basketTotalElement);
+  
+      function updateBasketTotal(price, isAdding = true) {
+          if (isAdding) {
+              basketTotal += price;
+          } else {
+              basketTotal -= price;
+          }
+          basketTotalElement.textContent = `Total: £${basketTotal.toFixed(2)}`;
+      }
+  
+      function addItemToBasket(itemName, itemPrice) {
+          const listItem = document.createElement('li');
+          listItem.textContent = `${itemName} - £${itemPrice}`;
+          const removeButton = document.createElement('button');
+          removeButton.textContent = 'Remove';
+          removeButton.style.padding = "5px 10px";
+          removeButton.style.marginLeft = "10px";
+          removeButton.style.backgroundColor = "red";
+          removeButton.style.color = "white";
+          removeButton.style.border = "none";
+          removeButton.style.cursor = "pointer";
+          removeButton.style.borderRadius = "5px";
+          removeButton.onclick = function() {
+              basketItemsList.removeChild(listItem);
+              const index = orderList.findIndex(item => item.name === itemName);
+              if (index > -1) {
+                  updateBasketTotal(orderList[index].price, false);
+                  orderList.splice(index, 1);
+              }
+              updateItemCount(-1);
+          };
+          listItem.appendChild(removeButton);
+          basketItemsList.appendChild(listItem);
+      }
+      
+    function placeOrder() {
+    // Generate a random order number
+    const orderNumber = Math.floor(Math.random() * 1000000); 
+
+    var items = orderList.map(item => item.name).join(", ");
+    let formData = new FormData();
+    formData.append('items', items);
+    formData.append('total', basketTotal.toString()); // Use basketTotal which is always up to date
+    formData.append('orderNumber', orderNumber.toString()); // Append the order number to the form data
+    formData.append('tableNo', document.getElementById('tableNo').value);
+
+    
+    fetch("{% url 'process-order' %}", {
+        method: 'POST',
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            // If the order is successfully processed
+            alert(`Order successfully placed!\nYour order number is: ${orderNumber}\nA waiter will be with you shortly for the payment.`);
+            // Reset the basket after placing the order
+            basketItemsList.innerHTML = ''; // Clear the basket list
+            basketTotal = 0; // Reset total
+            basketTotalElement.textContent = 'Total: £0'; // Update total display
+            basketItemCount.textContent = '0'; // Reset item count
+            document.getElementById('tableNo').value = "";
+            orderList.length = 0; // Clear the order list array
+        } else {
+            // Handle server-side errors (e.g., display a message)
+            alert("There was an error placing your order. Please try again.");
+        }
+    }).catch(error => {
+        console.error('Error:', error);
+        alert("There was an error placing your order. Please try again.");
+    });
+}
+  
+      function updateItemCount(change) {
+          const currentCount = parseInt(basketItemCount.textContent) || 0;
+          basketItemCount.textContent = currentCount + change;
+      }
+  
+      placeOrderButton.addEventListener('click', function() {
+              // Only proceed if there are items in the basket
+    if (orderList.length > 0) {
+        placeOrder();
+    } else {
+        alert('Your basket is empty.');
+    }
+      });
+  
+      viewOrderButton.addEventListener('click', function() {
+          basketOverlay.style.display = 'flex';
+      });
+  
+      closeBasketOverlayButton.addEventListener('click', function() {
+          basketOverlay.style.display = 'none';
+      });
+  
+      addToBasketButtons.forEach(button => {
+          button.addEventListener('click', function() {
+              const price = parseFloat(this.getAttribute('data-price'));
+              const itemContainer = this.closest('.dishGrid__item, .ourSpecials__item');
+              const itemName = itemContainer.querySelector('.ourSpecials__item__title, .dishGrid__item__title').textContent;
+              orderList.push({ name: itemName, price: price }); // Store items as objects with name and price
+              addItemToBasket(itemName, price);
+              updateBasketTotal(price, true);
+              updateItemCount(1);
+  
+              notification.style.display = 'block';
+              setTimeout(() => {
+                  notification.style.display = 'none';
+              }, 1500);
+          });
+      });
+  });
+  </script>
+
+<script>
+    function filterMenuByAllergen() {
+        var selectedAllergen = document.getElementById('allergenFilter').value;
+        var userid = document.querySelector('.allergen-filter-container').getAttribute('data-userid');
+        var url = `/Login/Customer/${userid}/?allergen=${selectedAllergen}`;
+        window.location.href = url;
+    }
+</script>
+
+    
+    
+
+
+
+<div id="notification" >Added to basket successfully!</div>
+
+    
+  <!-- Nav Section -->
+  <div class="nav">
+    <div class="container">
+      <div class="nav__wrapper">
+        <a href="{% url 'home' %}" class="logo">
+          <img src="{% static 'images/logo_round_black.png' %}" alt="Oaxaca Logo">
+        </a>
+        <nav>
+          <div class="nav__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="feather feather-menu">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </div>
+          <div class="nav__bgOverlay"></div>
+          <ol class="nav__list">
+            <div class="nav__close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="feather feather-x">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </div>
+            <div class="nav__list__wrapper">
+              <li><a href="{% url 'home' %}" class="btn primary-btn">Logout</a></li>
+            </div>
+          </ol>
+        </nav>
+      </div>
+    </div>
+    <button type="button" class="fixed-circle-button" data-bs-toggle="dropdown" aria-expanded="false" style="position: fixed; top: 50%; right: 20px; transform: translateY(-50%); z-index: 1000; width: 50px; height: 50px; border-radius: 50%; background-color: rgb(243, 113, 243); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; transition: background-color 0.3s, transform 0.3s;" onmouseover="this.style.backgroundColor='#28a745'; this.style.transform='scale(1.1)'; document.querySelector('.call-waiter-text').style.opacity=1; document.querySelector('.call-waiter-text').style.transform='translateY(-100%)';" onmouseout="this.style.backgroundColor='purple'; this.style.transform=''; document.querySelector('.call-waiter-text').style.opacity=0; document.querySelector('.call-waiter-text').style.transform='';">
+      <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-telephone-fill" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.68.68 0 0 0 .178.643l2.457 2.457a.68.68 0 0 0 .644.178l2.189-.547a1.75 1.75 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.6 18.6 0 0 1-7.01-4.42 18.6 18.6 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877z"/>
+      </svg>
+      <span class="call-waiter-text" style="position: absolute; top: -30px; right: 0; background-color: #207e36; color: rgb(255, 255, 255); padding: 5px 10px; border-radius: 5px; opacity: 0; transition: opacity 0.3s, transform 0.3s;">Call Waiter</span>
+    </button>
+  </div>
+  <!-- End Nav Section -->
+  <!-- page Title -->
+  <section id="page__title" data-aos="fade-up">
+    <div class="container">
+      <h2 class="page__title__text">
+        Welcome {{ user }}
+      </h2>
+    </div>
+  </section>
+  <!-- Filter for the Menu -->
+  <section id="Filter" data-aos="fade-up">
+    <button type="button" class="btn btn-success">
+        <a href="{% url 'customer' userid %}">All Dishes</a>
+    </button>
+    <button type="button" class="btn btn-outline-primary"><a href="#specialDishes">Our Special</a></button>
+    <button type="button" class="btn btn-outline-secondary"><a href="#topDishes">Top Dishes</a></button>
+    <button type="button" class="btn btn-outline-success"><a href="#breakfastDishes">Breakfast</a></button>
+    <button type="button" class="btn btn-outline-danger"><a href="#lunchDishes">Lunch</a></button>
+    <button type="button" class="btn btn-outline-warning"><a href="#dinnerDishes">Dinner</a></button>
+    <button type="button" class="btn btn-outline-dark"><a href="#drinksAndStuff">Drinks</a></button>
+<!-- Example split danger button ADD ON STAFF SIDE IMO - BEN
+<div class="btn-group">
+  <button type="button" class="btn btn-danger" disabled>Change Menu</button>
+  <button type="button" class="btn btn-danger dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="visually-hidden">Toggle Dropdown</span>
+  </button>
+  <ul class="dropdown-menu">
+    <li><a class="dropdown-item" href="#">Add Dishes</a></li>
+    <li><a class="dropdown-item" href="#">Remove Dishes</a></li>
+    <li><a class="dropdown-item" href="#">Change Price</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="#"></a></li>
+  </ul>
+</div> -->
+</section>
+<!-- Allergen Filter Dropdown -->
+<div class="allergen-filter-container" data-aos="fade-up" data-userid="{{ userid }}">
+    <label for="allergenFilter" class="filter-label">Filter by Allergen:</label>
+    <select id="allergenFilter" class="allergen-select" onchange="filterMenuByAllergen()">
+      <option value="">Select Allergen</option>
+      <option value="nogluten">Gluten-Free</option>
+      <option value="dairy">Dairy</option>
+      <option value="soy">Containing Soy</option>
+      <option value="nuts">Containing Nuts</option>
+      <option value="chicken">Chicken Dishes</option>
+    </select>
+  </div>
+  
+
+<!-- Basket Overlay/Popup -->
+<div id="basketOverlay" class="basket-overlay" style="display: none;">
+  <div class="basket-content">
+    <div class="basket-title">
+      <h1 class="basket_title_text">
+        Your Current Order
+      </h1>
+    </div>
+    <button id="closeBasketOverlay">Close</button>
+    <ul id="basketItemsList">
+      <!-- Basket items will be dynamically added here -->
+    </ul>
+    <label for="tableNo" style="font-size:10.5pt;">Table Selection:</label>
+    <select id="tableNo" name="tableNo" style="font-size:10.5pt;">
+      {% for table in tables %}
+      {% if table.unavailable %}
+      <option value="{{ table.table_id }}" disabled style="color: red;">Table Number: {{ table.table_id }} Location: {{ table.location }}  (Unavailable)</option>
+      {% else %}
+      <option value="{{ table.table_id }}">Table Number: {{ table.table_id }} Location: {{ table.location }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+    <button id="placeOrder">Place Order</button>
+  </div>
+</div>
+
+
+<div class="basket-icon-container">
+  <button class="button">
+    <svg fill="#ffffff" width="28px" height="28px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M31.739 8.875c-0.186-0.264-0.489-0.422-0.812-0.422h-21.223l-1.607-5.54c-0.63-2.182-2.127-2.417-2.741-2.417h-4.284c-0.549 0-0.993 0.445-0.993 0.993s0.445 0.993 0.993 0.993h4.283c0.136 0 0.549 0 0.831 0.974l5.527 20.311c0.12 0.428 0.511 0.724 0.956 0.724h13.499c0.419 0 0.793-0.262 0.934-0.657l4.758-14.053c0.11-0.304 0.064-0.643-0.122-0.907zM25.47 22.506h-12.046l-3.161-12.066h19.253zM23.5 26.504c-1.381 0-2.5 1.119-2.5 2.5s1.119 2.5 2.5 2.5 2.5-1.119 2.5-2.5c0-1.381-1.119-2.5-2.5-2.5zM14.5 26.504c-1.381 0-2.5 1.119-2.5 2.5s1.119 2.5 2.5 2.5 2.5-1.119 2.5-2.5c0-1.381-1.119-2.5-2.5-2.5z"></path> </g></svg>
+    </button>
+  <span class="basket-item-count">0</span>
+</div>
+  <!-- Our Specials -->
+  <section id="specialDishes">
+  <section id="ourSpecials" data-aos="fade-up">
+    <div class="container">
+      <h3 class="ourSpecials__title">Our Specials</h3>
+      <div class="ourSpecials__wrapper">
+
+        {% for x in menu_item %}
+          {% if x.category == 'specials' and x.stock != 0 %}
+            <div class="ourSpecials__item">
+              <div class="ourSpecials__item__img">
+                <img src="{% static x.image %}" alt="food img">
+                <div class="ourSpecials__item__img__content">
+                  </p><p class="ourSpecials__item__img__description">
+                    {{ x.description }}</p>
+                </div>
+              </div>
+              <div class="ourSpecials__item__info">
+                <h3 class="ourSpecials__item__title">
+                  {{ x.name }}
+                </h3>
+                <h4 class="ourSpecials__item__price">£{{ x.price }}</h4>
+                <div class="ourSpecials__item__calories">{{ x.calories }} cal</div>
+                <div class="ourSpecials__item__stars">
+                  <img src="{% static 'images/3star.png' %}" alt="3 stars">
+                </div>
+                <div class="ourSpecials__item__icons">
+                  {% if 'nogluten' in x.allergies %}
+                  <img src="{% static 'images/no_gluten.png' %}" alt="nogluten" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'dairy' in x.allergies %}
+                  <img src="{% static 'images/dairy.png' %}" alt="dairy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'legumes' in x.allergies %}
+                  <img src="{% static 'images/legumes.png' %}" alt="beans" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'chicken' in x.allergies %}
+                  <img src="{% static 'images/chicken.png' %}" alt="chicken" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'soy' in x.allergies %}
+                  <img src="{% static 'images/soy.png' %}" alt="soy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'nuts' in x.allergies %}
+                  <img src="{% static 'images/nut.png' %}" alt="nuts" class="allergy-icon"/>
+                  {% endif %}
+                  <!-- {% if 'gluten' in x.allergies %}
+                  <img src="{% static 'images/gluten.png' %}" alt="gluten" class="allergy-icon"/>
+                  {% endif %} -->
+                  {% if 'eggs' in x.allergies %}
+                  <img src="{% static 'images/eggs.png' %}" alt="eggs" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'corn' in x.allergies %}
+                  <img src="{% static 'images/corn.png' %}" alt="corn" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'fish' in x.allergies %}
+                  <img src="{% static 'images/fish.png' %}" alt="fish" class="allergy-icon"/>
+                  {% endif %}
+                </div>
+                <div class="ourSpecials__item__addToBasket">
+                  <button class="CartBtn" data-price="{{ x.price }}">
+                    <span class="IconContainer">
+                      <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512" fill="rgb(0, 0, 0)" class="cart"><path d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"></path></svg>
+                    </span>
+                    <p class="text">Add to Basket</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  </section>
+  <!-- End Our Specials -->
+  <!-- Top Dishes -->
+  <section id="topDishes">
+  <section id="dishGrid" data-aos="fade-down">
+    <div class="container">
+      <h2 class="dishGrid__title">
+        Top Dishes
+      </h2>
+      <div class="dishGrid__wrapper">
+        {% for x in menu_item %}
+          {% if x.category == 'top' and x.stock != 0 %}
+            <div class="dishGrid__item">
+              <div class="ourSpecials__item__img">
+                <img src="{% static x.image %}" alt="food img">
+                <div class="ourSpecials__item__img__content">
+                  </p><p class="ourSpecials__item__img__description">
+                    {{ x.description }}</p>
+                </div>
+              </div>
+              <div class="ourSpecials__item__info">
+                <h3 class="ourSpecials__item__title">
+                  {{ x.name }}
+                </h3>
+                <h4 class="ourSpecials__item__price">£{{ x.price }}</h4>
+                <div class="ourSpecials__item__calories">{{ x.calories }} cal</div>
+                <div class="ourSpecials__item__stars">
+                  <img src="{% static 'images/3star.png' %}" alt="3 stars">
+                </div>
+                <div class="ourSpecials__item__icons">
+                  {% if 'nogluten' in x.allergies %}
+                  <img src="{% static 'images/no_gluten.png' %}" alt="nogluten" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'dairy' in x.allergies %}
+                  <img src="{% static 'images/dairy.png' %}" alt="dairy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'legumes' in x.allergies %}
+                  <img src="{% static 'images/legumes.png' %}" alt="beans" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'chicken' in x.allergies %}
+                  <img src="{% static 'images/chicken.png' %}" alt="chicken" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'soy' in x.allergies %}
+                  <img src="{% static 'images/soy.png' %}" alt="soy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'nuts' in x.allergies %}
+                  <img src="{% static 'images/nut.png' %}" alt="nuts" class="allergy-icon"/>
+                  {% endif %}
+                  <!-- {% if 'gluten' in x.allergies %}
+                  <img src="{% static 'images/gluten.png' %}" alt="gluten" class="allergy-icon"/>
+                  {% endif %} -->
+                  {% if 'eggs' in x.allergies %}
+                  <img src="{% static 'images/eggs.png' %}" alt="eggs" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'corn' in x.allergies %}
+                  <img src="{% static 'images/corn.png' %}" alt="corn" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'fish' in x.allergies %}
+                  <img src="{% static 'images/fish.png' %}" alt="fish" class="allergy-icon"/>
+                  {% endif %}
+                </div>
+                <div class="ourSpecials__item__addToBasket">
+                  <button class="CartBtn" data-price="{{ x.price }}">
+                    <span class="IconContainer">
+                      <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512" fill="rgb(0, 0, 0)" class="cart"><path d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"></path></svg>
+                    </span>
+                    <p class="text">Add to Basket</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+</section>
+  <!-- End Top Dishes -->
+  <!-- Breakfast Dishes -->
+  <section id="breakfastDishes">
+  <section id="dishGrid" data-aos="fade-up">
+    <div class="container">
+      <h2 class="dishGrid__title">
+        Breakfast
+      </h2>
+
+      <div class="dishGrid__wrapper">
+        {% for x in menu_item %}
+          {% if x.category == 'breakfast' and x.stock != 0 %}
+            <div class="dishGrid__item">
+              <div class="ourSpecials__item__img">
+                <img src="{% static x.image %}" alt="food img">
+                <div class="ourSpecials__item__img__content">
+                  </p><p class="ourSpecials__item__img__description">
+                    {{ x.description }}</p>
+                </div>
+              </div>
+              <div class="ourSpecials__item__info">
+                <h3 class="ourSpecials__item__title">
+                  {{ x.name }}
+                </h3>
+                <h4 class="ourSpecials__item__price">£{{ x.price }}</h4>
+                <div class="ourSpecials__item__calories">{{ x.calories }} cal</div>
+                <div class="ourSpecials__item__stars">
+                  <img src="{% static 'images/3star.png' %}" alt="3 stars">
+                </div>
+                <div class="ourSpecials__item__icons">
+                  {% if 'nogluten' in x.allergies %}
+                  <img src="{% static 'images/no_gluten.png' %}" alt="nogluten" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'dairy' in x.allergies %}
+                  <img src="{% static 'images/dairy.png' %}" alt="dairy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'legumes' in x.allergies %}
+                  <img src="{% static 'images/legumes.png' %}" alt="beans" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'chicken' in x.allergies %}
+                  <img src="{% static 'images/chicken.png' %}" alt="chicken" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'soy' in x.allergies %}
+                  <img src="{% static 'images/soy.png' %}" alt="soy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'nuts' in x.allergies %}
+                  <img src="{% static 'images/nut.png' %}" alt="nuts" class="allergy-icon"/>
+                  {% endif %}
+                  <!-- {% if 'gluten' in x.allergies %}
+                  <img src="{% static 'images/gluten.png' %}" alt="gluten" class="allergy-icon"/>
+                  {% endif %} -->
+                  {% if 'eggs' in x.allergies %}
+                  <img src="{% static 'images/eggs.png' %}" alt="eggs" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'corn' in x.allergies %}
+                  <img src="{% static 'images/corn.png' %}" alt="corn" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'fish' in x.allergies %}
+                  <img src="{% static 'images/fish.png' %}" alt="fish" class="allergy-icon"/>
+                  {% endif %}
+                </div>
+                <div class="ourSpecials__item__addToBasket">
+                  <button class="CartBtn" data-price="{{ x.price }}">
+                    <span class="IconContainer">
+                      <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512" fill="rgb(0, 0, 0)" class="cart"><path d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"></path></svg>
+                    </span>
+                    <p class="text">Add to Basket</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  </section>
+  <!-- End Breakfast Dishes -->
+  <!-- Lunch Dishes -->
+  <section id="lunchDishes">
+  <section id="dishGrid" data-aos="fade-up">
+    <div class="container">
+      <h2 class="dishGrid__title">
+        Lunch
+      </h2>
+      <div class="dishGrid__wrapper">
+        {% for x in menu_item %}
+          {% if x.category == 'lunch' and x.stock != 0 %}
+            <div class="dishGrid__item">
+              <div class="ourSpecials__item__img">
+                <img src="{% static x.image %}" alt="food img">
+                <div class="ourSpecials__item__img__content">
+                  </p><p class="ourSpecials__item__img__description">
+                    {{ x.description }}</p>
+                </div>
+              </div>
+              <div class="ourSpecials__item__info">
+                <h3 class="ourSpecials__item__title">
+                  {{ x.name }}
+                </h3>
+                <h4 class="ourSpecials__item__price">£{{ x.price }}</h4>
+                <div class="ourSpecials__item__calories">{{ x.calories }} cal</div>
+                <div class="ourSpecials__item__stars">
+                  <img src="{% static 'images/3star.png' %}" alt="3 stars">
+                </div>
+                <div class="ourSpecials__item__icons">
+                  {% if 'nogluten' in x.allergies %}
+                  <img src="{% static 'images/no_gluten.png' %}" alt="nogluten" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'dairy' in x.allergies %}
+                  <img src="{% static 'images/dairy.png' %}" alt="dairy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'legumes' in x.allergies %}
+                  <img src="{% static 'images/legumes.png' %}" alt="beans" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'chicken' in x.allergies %}
+                  <img src="{% static 'images/chicken.png' %}" alt="chicken" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'soy' in x.allergies %}
+                  <img src="{% static 'images/soy.png' %}" alt="soy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'nuts' in x.allergies %}
+                  <img src="{% static 'images/nut.png' %}" alt="nuts" class="allergy-icon"/>
+                  {% endif %}
+                  <!-- {% if 'gluten' in x.allergies %}
+                  <img src="{% static 'images/gluten.png' %}" alt="gluten" class="allergy-icon"/>
+                  {% endif %} -->
+                  {% if 'eggs' in x.allergies %}
+                  <img src="{% static 'images/eggs.png' %}" alt="eggs" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'corn' in x.allergies %}
+                  <img src="{% static 'images/corn.png' %}" alt="corn" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'fish' in x.allergies %}
+                  <img src="{% static 'images/fish.png' %}" alt="fish" class="allergy-icon"/>
+                  {% endif %}
+                </div>
+                <div class="ourSpecials__item__addToBasket">
+                  <button class="CartBtn" data-price="{{ x.price }}">
+                    <span class="IconContainer">
+                      <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512" fill="rgb(0, 0, 0)" class="cart"><path d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"></path></svg>
+                    </span>
+                    <p class="text">Add to Basket</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  </section>
+  <!-- End Lunch Dishes -->
+  <!-- Dinner Dishes -->
+  <section id="dinnerDishes">
+  <section id="dishGrid" data-aos="fade-up">
+    <div class="container">
+      <h2 class="dishGrid__title">
+        Dinner
+      </h2>
+      <div class="dishGrid__wrapper">
+        {% for x in menu_item %}
+          {% if x.category == 'dinner' and x.stock != 0 %}
+            <div class="dishGrid__item">
+              <div class="ourSpecials__item__img">
+                <img src="{% static x.image %}" alt="food img">
+                <div class="ourSpecials__item__img__content">
+                  </p><p class="ourSpecials__item__img__description">
+                    {{ x.description }}</p>
+                </div>
+              </div>
+              <div class="ourSpecials__item__info">
+                <h3 class="ourSpecials__item__title">
+                  {{ x.name }}
+                </h3>
+                <h4 class="ourSpecials__item__price">£{{ x.price }}</h4>
+                <div class="ourSpecials__item__calories">{{ x.calories }} cal</div>
+                <div class="ourSpecials__item__stars">
+                  <img src="{% static 'images/3star.png' %}" alt="3 stars">
+                </div>
+                <div class="ourSpecials__item__icons">
+                  {% if 'nogluten' in x.allergies %}
+                  <img src="{% static 'images/no_gluten.png' %}" alt="nogluten" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'dairy' in x.allergies %}
+                  <img src="{% static 'images/dairy.png' %}" alt="dairy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'legumes' in x.allergies %}
+                  <img src="{% static 'images/legumes.png' %}" alt="beans" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'chicken' in x.allergies %}
+                  <img src="{% static 'images/chicken.png' %}" alt="chicken" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'soy' in x.allergies %}
+                  <img src="{% static 'images/soy.png' %}" alt="soy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'nuts' in x.allergies %}
+                  <img src="{% static 'images/nut.png' %}" alt="nuts" class="allergy-icon"/>
+                  {% endif %}
+                  <!-- {% if 'gluten' in x.allergies %}
+                  <img src="{% static 'images/gluten.png' %}" alt="gluten" class="allergy-icon"/>
+                  {% endif %} -->
+                  {% if 'eggs' in x.allergies %}
+                  <img src="{% static 'images/eggs.png' %}" alt="eggs" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'corn' in x.allergies %}
+                  <img src="{% static 'images/corn.png' %}" alt="corn" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'fish' in x.allergies %}
+                  <img src="{% static 'images/fish.png' %}" alt="fish" class="allergy-icon"/>
+                  {% endif %}
+                </div>
+                <div class="ourSpecials__item__addToBasket">
+                  <button class="CartBtn" data-price="{{ x.price }}">
+                    <span class="IconContainer">
+                      <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512" fill="rgb(0, 0, 0)" class="cart"><path d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"></path></svg>
+                    </span>
+                    <p class="text">Add to Basket</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  </section>
+  <!-- End Dinner Dishes -->
+  <!-- Drinks For Oxaca -->
+  <section id="drinksAndStuff">
+  <section id="dishGrid" data-aos="fade-up">
+    <div class="container">
+      <h2 class="dishGrid__title">
+        Drinks
+      </h2>
+      <div class="dishGrid__wrapper">
+        {% for x in menu_item %}
+          {% if x.category == 'drinks' and x.stock != 0 %}
+            <div class="dishGrid__item">
+              <div class="ourSpecials__item__img">
+                <img src="{% static x.image %}" alt="food img">
+                <div class="ourSpecials__item__img__content">
+                  </p><p class="ourSpecials__item__img__description">
+                    {{ x.description }}</p>
+                </div>
+              </div>
+              <div class="ourSpecials__item__info">
+                <h3 class="ourSpecials__item__title">
+                  {{ x.name }}
+                </h3>
+                <h4 class="ourSpecials__item__price">£{{ x.price }}</h4>
+                <div class="ourSpecials__item__calories">{{ x.calories }} cal</div>
+                <div class="ourSpecials__item__stars">
+                  <img src="{% static 'images/3star.png' %}" alt="3 stars">
+                </div>
+                <div class="ourSpecials__item__icons">
+                  {% if 'nogluten' in x.allergies %}
+                  <img src="{% static 'images/no_gluten.png' %}" alt="nogluten" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'dairy' in x.allergies %}
+                  <img src="{% static 'images/dairy.png' %}" alt="dairy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'legumes' in x.allergies %}
+                  <img src="{% static 'images/legumes.png' %}" alt="beans" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'chicken' in x.allergies %}
+                  <img src="{% static 'images/chicken.png' %}" alt="chicken" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'soy' in x.allergies %}
+                  <img src="{% static 'images/soy.png' %}" alt="soy" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'nuts' in x.allergies %}
+                  <img src="{% static 'images/nut.png' %}" alt="nuts" class="allergy-icon"/>
+                  {% endif %}
+                  <!-- {% if 'gluten' in x.allergies %}
+                  <img src="{% static 'images/gluten.png' %}" alt="gluten" class="allergy-icon"/>
+                  {% endif %} -->
+                  {% if 'eggs' in x.allergies %}
+                  <img src="{% static 'images/eggs.png' %}" alt="eggs" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'corn' in x.allergies %}
+                  <img src="{% static 'images/corn.png' %}" alt="corn" class="allergy-icon"/>
+                  {% endif %}
+                  {% if 'fish' in x.allergies %}
+                  <img src="{% static 'images/fish.png' %}" alt="fish" class="allergy-icon"/>
+                  {% endif %}
+                </div>
+                <div class="ourSpecials__item__addToBasket">
+                  <button class="CartBtn" data-price="{{ x.price }}">
+                    <span class="IconContainer">
+                      <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512" fill="rgb(0, 0, 0)" class="cart"><path d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"></path></svg>
+                    </span>
+                    <p class="text">Add to Basket</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  </section>
+  <!-- End of Drinks -->
+  <div id="copyright">
+    <div class="container">
+      <p class="copyright__text">
+        © copyright 2024 Oaxaca’s Restaurants | All rights reserved.
+      </p>
+    </div>
+  </div>
+  <!-- aos script -->
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <!-- custom script -->
+  <script src="{% static 'css/main.js' %}"></script>
+</body>
+
+</html>
