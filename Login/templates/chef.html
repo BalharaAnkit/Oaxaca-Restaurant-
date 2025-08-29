@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Chef</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+
+        #sidebar {
+            background-color: #dabfff;
+        }
+
+        .list-group-item {
+            color: #4b2e83;
+        }
+
+        .list-group-item.active {
+            background-color: #7c4dff;
+            border-color: #7c4dff;
+        }
+
+
+
+
+        .table, .table th, .table td {
+            border: 3px solid black; /* Adds a black border */
+        }
+
+        .table {
+            border-collapse: collapse; /* Ensures borders are nicely joined together */
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 bg-light border-right">
+            <h3 class="text-center my-3"> Welcome {{ user }} Chef's Area</h3>
+            <div class="list-group">
+                <a href="#orders" class="list-group-item list-group-item-action" data-toggle="tab">Orders</a>
+                <a href="#menu" class="list-group-item list-group-item-action" data-toggle="tab">Menu</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="tab-content">
+                <!-- Orders Table -->
+                <div class="tab-pane fade" id="orders">
+                    <h4 class="my-3">Pending Orders</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Ready?</th>
+                            <th>comfirm</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'P'%}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>{{ item.order_time }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+                            <td>
+                                <form method="post" action="{% url 'update_order' item.order_number userid 'R' %}">
+                                {% csrf_token %}
+                                <button type="submit" onclick="return confirmAction('{{ item.order_number }}', '{{ userid }}', 'R')">Done</button>
+                            </form>
+                                <form method="post" action="{% url 'update_order' item.order_number userid 'C' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" onclick="return confirmAction('{{ item.order_number }}', '{{ userid }}', 'C')">Cancel</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <h4 class="my-3">Completed Orders</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Ready?</th>
+                            <th>comfirm</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'R' %}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>{{ item.order_time }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+                            <td>
+                                <form method="post" action="{% url 'update_order' item.order_number userid 'C' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" onclick="return confirmAction('{{ item.order_number }}', '{{ userid }}', 'C')">Cancel</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <h4 class="my-3">Delivered Orders</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Ready?</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'D' %}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>{{ item.order_time }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <h4 class="my-3">Cancelled Orders</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Ready?</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in orders %}
+                        {% if item.status == 'C' %}
+                        <tr>
+                            <td>{{ item.order_number }}</td>
+                            <td>{{ item.order_time }}</td>
+                            <td>
+                                <ul>
+                                    {% for food, quantity in item.item_quantities %}
+                                    <li>{{ quantity }} × {{ food }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.detailed_status }}</td>
+
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                </div>
+
+                <!-- Menu Table -->
+                <div class="tab-pane fade" id="menu">
+                    <h4 class="my-3">Menu</h4>
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Change Stock</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tbody>
+                        {% for item in menu_item %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.price }}</td>
+                            <td id="stock_{{ item.item_id }}">{{ item.stock }}</td>
+                            <td>
+                                <form method="post" action="{% url 'update_stock' item.item_id userid 'increase' %}">
+                                    {% csrf_token %}
+                                    <button type="submit">Increase</button>
+                                </form>
+                                <form method="post" action="{% url 'update_stock' item.item_id userid 'decrease' %}">
+                                    {% csrf_token %}
+                                    <button type="submit">Decrease</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('.list-group-item').on('click', function() {
+            var $tabPane = $($(this).attr('href'));
+            $('.tab-pane').removeClass('show active');
+            $tabPane.addClass('show active');
+        });
+        var hash = window.location.hash;
+        if(hash) {
+            $('.tab-pane').removeClass('show active');
+            $(hash).addClass('show active');
+            $('.list-group-item[href="' + hash + '"]').addClass('active');
+        } else {
+
+            $('#orders').addClass('show active');
+            $('a[href="#orders"]').addClass('active');
+        }
+    });
+</script>
+<script>
+    function confirmAction(orderNumber, userId, action) {
+        var confirmationMessage;
+        if (action === 'D') {
+            confirmationMessage = 'Are you sure you want to mark order as done?';
+        } else if (action === 'C') {
+            confirmationMessage = 'Are you sure you want to cancel this order?';
+        }
+
+        return confirm(confirmationMessage);
+    }
+</script>
+</body>
+</html>
