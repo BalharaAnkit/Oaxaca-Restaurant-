@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            background-image: url('{% static "food.png" %}');
+            background-size: cover;
+            background-position: center;
+        }
+
+        form {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            opacity: 0.7;
+        }
+
+        form:hover,
+        form:active {
+            transform: scale(1.05);
+        }
+
+        select {
+            margin-bottom: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 300px;
+            height: 50px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 42px;
+            width: 146px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #4caf50;
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #4caf50;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(146px);
+            -ms-transform: translateX(146px);
+            transform: translateX(146px);
+        }
+
+        .slider:after
+        {
+            content:'Register Login';
+            color: black;
+            display: block;
+            position: relative;
+            transform: translate(-50%,-50%);
+            top: 50%;
+            left: 65%;
+            font-size: 16px;
+            word-spacing: 95px;
+        }
+    </style>
+</head>
+
+<body>
+    <form id="RegisterForm" method="post">
+        {% csrf_token %}
+        <label class="switch">
+            <input type="checkbox" id="checkBox" onclick="toggleLoginRegister()">
+            <span class="slider"></span>
+        </label>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+
+        <label for="email">Email:</label>
+        <input type="text" id="email" name="email" required>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+
+        <label for="password2">Re-type password:</label>
+        <input type="password" id="password2" name="password2" required>
+
+        <label for="role">Role:</label>
+        <select id="role" name="role" required>
+            <option value="" disabled selected>Select a role</option>
+            <option value="CUST">Customer</option>
+            <option value="WAIT">Waiter</option>
+            <option value="CHEF">Chef</option>
+        </select>
+
+        <button type="submit">Register</button>
+
+        {% if messages %}
+        <div>
+            {% for message in messages %}
+            <div style="color: red;
+            width: 300px;
+            margin-top: 20px;
+            padding: 0px;
+            border-radius: 0px;
+            text-align: center;">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </form>
+
+    <script>
+        function toggleLoginRegister() {
+            var checkBox = document.getElementById("checkBox");
+            if (checkBox.checked == true){
+                window.location.href = "{% url 'login' %}";
+            } else {
+                window.location.href = "{% url 'register' %}";
+            }
+        }
+    </script>
+</body>
+</html>
